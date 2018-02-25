@@ -4,6 +4,7 @@
             [cljs-lambda.macros :refer-macros [deflambda]]
             [cljs.reader :refer [read-string]]
             [cljs.nodejs :as nodejs]
+            [cljs-http.client :as http]
             [cljs.core.async :as async]
             [promesa.core :as p])
   (:require-macros [cljs.core.async.macros :refer [go]]))
@@ -36,13 +37,26 @@
     ;; promised - see :delayed-failure above.
     (ctx/fail! ctx (js/Error. (str "Failing after " msecs " milliseconds")))))
 
+(defn doStuff []
+;  (go
+;  (<! (async/timeout 2000))
+;  {:waitedMAN 2000})
+
+  (go (let [response (<! (http/get "https://jsonplaceholder.typicode.com/posts"
+                                   {:with-credentials? false
+                                    :query-params {"since" 135}}))]
+        (prn (:status response))
+        (prn (map :login (:body response)))))
+
+  )
+
+;
+
 (deflambda run-lambda [{:keys [magic-word] :as input} ctx]
 ;  (when (not= magic-word (config :magic-word))
 ;    (throw (js/Error. "Your magic word is garbage")))
 ;  (if (= (input :spell) "echo-env")
 ;    (ctx/environment ctx)
 ;    (cast-async-spell input ctx))
-  (go
-    (<! (async/timeout 2000))
-    {:waitedMAN 2000}))
+  (doStuff))
 
