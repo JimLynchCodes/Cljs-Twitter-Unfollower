@@ -12,11 +12,11 @@
   :npm {:dependencies [[source-map-support "0.4.0"]]}
   :source-paths ["src"]
   :cljs-lambda
-  {:defaults      {:role "FIXME"}
+  {:defaults      {:role "arn:aws:iam::954459734159:role/cljs-lambda-default"}
    :resource-dirs ["static"]
    :functions
-   [{:name   "work-magic"
-     :invoke twitter-unfollower.core/work-magic}]}
+   [{:name   "cljs-twitter-unfollower"
+     :invoke twitter-unfollower.core/run-lambda}]}
   :cljsbuild
   {:builds [{:id "twitter-unfollower"
              :source-paths ["src"]

@@ -36,9 +36,13 @@
     ;; promised - see :delayed-failure above.
     (ctx/fail! ctx (js/Error. (str "Failing after " msecs " milliseconds")))))
 
-(deflambda work-magic [{:keys [magic-word] :as input} ctx]
-  (when (not= magic-word (config :magic-word))
-    (throw (js/Error. "Your magic word is garbage")))
-  (if (= (input :spell) "echo-env")
-    (ctx/environment ctx)
-    (cast-async-spell input ctx)))
+(deflambda run-lambda [{:keys [magic-word] :as input} ctx]
+;  (when (not= magic-word (config :magic-word))
+;    (throw (js/Error. "Your magic word is garbage")))
+;  (if (= (input :spell) "echo-env")
+;    (ctx/environment ctx)
+;    (cast-async-spell input ctx))
+  (go
+    (<! (async/timeout 2000))
+    {:waitedMAN 2000}))
+
