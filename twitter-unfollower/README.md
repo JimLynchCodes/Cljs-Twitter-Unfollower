@@ -22,7 +22,7 @@ First, create a folder in the twitter-unfollower directory alongside the _src_ a
          :access_token        "XXXX-XXXXXXXXXXXXXXXXXXXXXXX"
          :access_token_secret "XXXXXXXXXXXXXXXXXXXXXXXXXXXX"}}
 ```
-You can find these credentials for your account by making an app in the (twitter developer console)[https://apps.twitter.com/]. 
+You can find these credentials for your account by making an app in the [twitter developer console](https://apps.twitter.com/). 
 
          
 ### 2) Set Up AWS Credentials
