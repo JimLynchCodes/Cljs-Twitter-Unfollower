@@ -1,62 +1,43 @@
 (ns twitter-unfollower.core
+  (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [cljs-lambda.util :as lambda]
             [cljs-lambda.context :as ctx]
-            [cljs-lambda.macros :refer-macros [deflambda]]
-            [cljs.reader :refer [read-string]]
             [cljs.nodejs :as nodejs]
-            [cljs-http.client :as http]
-            [cljs.core.async :as async]
-            [promesa.core :as p])
-  (:require-macros [cljs.core.async.macros :refer [go]]))
+            [cljs.reader :refer [read-string]]
+            [cljs-lambda.macros :refer-macros [deflambda]]
+            [twit :as twit]
+            [cljs.core.async :refer [put! chan <!]]))
 
-(def config
-  (-> (nodejs/require "fs")
-      (.readFileSync "static/config.edn" "UTF-8")
-      read-string))
 
-(defmulti cast-async-spell (fn [{spell :spell} ctx] (keyword spell)))
+(defn getData []
 
-(defmethod cast-async-spell :delay-channel
-  [{:keys [msecs] :or {msecs 1000}} ctx]
+  (def followingMeChan (chan))
+  (def followedByMeChan(chan))
+
+  (def config
+    (-> (nodejs/require "fs")
+        (.readFileSync "static/config.edn" "UTF-8")
+        read-string))
+
+  (println "sending request...")
+
+  (let [twitter twit]
+    (def Twitter
+      (new twit (clj->js (:creds config)))))
+
+  (def queryParams {})
+
+  (.get Twitter "followers/ids" queryParams
+        (fn [err data]
+          (put! followingMeChan (count (.-ids data)))))
+
+  (.get Twitter "friends/ids" queryParams
+        (fn [err data]
+          (put! followedByMeChan (count (.-ids data))))))
+
+(deflambda run-lambda [args ctx]
+  (getData)
   (go
-    (<! (async/timeout msecs))
-    {:waited msecs}))
-
-(defmethod cast-async-spell :delay-promise
-  [{:keys [msecs] :or {msecs 1000}} ctx]
-  (p/promise
-   (fn [resolve]
-     (p/schedule msecs #(resolve {:waited msecs})))))
-
-(defmethod cast-async-spell :delay-fail
-  [{:keys [msecs] :or {msecs 1000}} ctx]
-  (go
-    (<! (async/timeout msecs))
-    ;; We can fail/succeed wherever w/ fail!/succeed! - we can also
-    ;; leave an Error instance on the channel we return, or return a reject
-    ;; promised - see :delayed-failure above.
-    (ctx/fail! ctx (js/Error. (str "Failing after " msecs " milliseconds")))))
-
-(defn doStuff []
-;  (go
-;  (<! (async/timeout 2000))
-;  {:waitedMAN 2000})
-
-  (go (let [response (<! (http/get "https://jsonplaceholder.typicode.com/posts"
-                                   {:with-credentials? false
-                                    :query-params {"since" 135}}))]
-        (prn (:status response))
-        (prn (map :login (:body response)))))
-
-  )
-
-;
-
-(deflambda run-lambda [{:keys [magic-word] :as input} ctx]
-;  (when (not= magic-word (config :magic-word))
-;    (throw (js/Error. "Your magic word is garbage")))
-;  (if (= (input :spell) "echo-env")
-;    (ctx/environment ctx)
-;    (cast-async-spell input ctx))
-  (doStuff))
-
+    (let [followingMe  (<! followingMeChan)
+          followedByMe (<! followedByMeChan)]
+      (ctx/succeed! ctx {:followingMe followingMe :followedByMe followedByMe}))))
