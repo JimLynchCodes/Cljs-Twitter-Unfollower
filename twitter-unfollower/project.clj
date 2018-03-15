@@ -11,13 +11,9 @@
             [lein-doo       "0.1.7"]
             [io.nervous/lein-cljs-lambda "0.6.6"]
             [lein-ancient "0.6.15"]]
-  :npm {:dependencies [
-
-                        [source-map-support "0.4.0"]
-
-                        [twit "2.2.9"]
-
-                        ]}
+  :npm {:dependencies [[source-map-support "0.4.0"]
+                       [twit "2.2.9"]
+                       ]}
   :source-paths ["src"]
   :cljs-lambda
   {:defaults      {:role "arn:aws:iam::954459734159:role/cljs-lambda-default"}

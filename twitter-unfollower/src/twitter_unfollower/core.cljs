@@ -6,14 +6,16 @@
             [cljs.reader :refer [read-string]]
             [cljs-lambda.macros :refer-macros [deflambda]]
             [twit :as twit]
+            [goog.object]
             [cljs.core.async :refer [put! chan <!]]))
 
-
-(defn filterfn [followingMe followedByMe]
-  (println [followingMe followedByMe]))
+(defn filterFollowees [followingMe followedByMe]
+  (let [cljFollowingMe (js->clj followingMe)
+        cljFollowedByMe (js->clj followedByMe)]
+  (filter
+    (fn [x] (if-not (some? ((keyword (str x)) cljFollowingMe)) x)) cljFollowedByMe)))
 
 (defn getData []
-
   (def followingMeChan (chan))
   (def followedByMeChan(chan))
   (def followedByMeDetailsChan(chan))
@@ -34,21 +36,20 @@
   (.get Twitter "followers/ids" queryParams
     (fn [err data]
       (def mapOfIds (apply array-map
-        (interleave (map keyword (.-ids data))
-          (map (fn [x] 0) (.-length (.-ids data))))))
-      (println mapOfIds)
-      (put! followingMeChan (.-ids data))))
+        (interleave (map keyword (map str (.-ids data)))
+          (map (fn [x] 0) (.-ids data)))))
+            (put! followingMeChan mapOfIds)))
 
   (.get Twitter "friends/ids" queryParams
     (fn [err data]
-      (put! followedByMeDetailsChan (.-ids data)))))
+      (put! followedByMeChan (.-ids data)))))
 
 (deflambda run-lambda [args ctx]
   (getData)
   (go
     (let [followingMe                   (<! followingMeChan)
           followedByMe                  (<! followedByMeChan)
-          followedByMeButNotFollowingMe (filterFn followingMe followedByMe)]
+          followedByMeButNotFollowingMe (filterFollowees followingMe followedByMe)]
 
       (def unfollowChan(chan))
       (def unfollowParams
@@ -56,10 +57,13 @@
          :screen_name ""
          :userId      ""})
 
-      (.post Twitter "friendships/destroy" queryParams
-        (fn [err data]
-          (put! unfollowChan data)))
+;      (println followedByMeButNotFollowingMe)
 
-      (<! unfollowChan)
-      (println "type " (type (first followingMe)))
-      (ctx/succeed! ctx {:followingMe followingMe :followedByMe followedByMe}))))
+      (let [idsToUnfollow (take 1 followedByMeButNotFollowingMe)]
+        (println (first idsToUnfollow))
+
+
+        )
+      (ctx/succeed! ctx { :followingMe                   followingMe
+                          :followedByMe                  followedByMe
+                          :followedByMeButNotFollowingMe followedByMeButNotFollowingMe}))))
