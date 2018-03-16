@@ -10,12 +10,16 @@
             [cljs.core.async :refer [put! chan <!]]))
 
 (defn filterFollowees [followingMe followedByMe]
-  (let [cljFollowingMe (js->clj followingMe)
+  "takes a vector of ids of users I'm following and map with structure {:id 0}
+  containing users following me. Returns a vector of only users I'm folowing who
+  were also found in the map."
+  (let [cljFollowingMe  (js->clj followingMe)
         cljFollowedByMe (js->clj followedByMe)]
-  (filter
-    (fn [x] (if-not (some? ((keyword (str x)) cljFollowingMe)) x)) cljFollowedByMe)))
+    (filter
+      (fn [x] (if-not (some? ((keyword (str x)) cljFollowingMe)) x)) cljFollowedByMe)))
 
 (defn getData []
+  "Fills the various channels with data using the twitter api."
   (def followingMeChan (chan))
   (def followedByMeChan(chan))
   (def followedByMeDetailsChan(chan))
@@ -45,6 +49,7 @@
       (put! followedByMeChan (.-ids data)))))
 
 (deflambda run-lambda [args ctx]
+  "Entry point for this AWS Lambda service!"
   (getData)
   (go
     (let [followingMe                   (<! followingMeChan)
@@ -57,13 +62,16 @@
          :screen_name ""
          :userId      ""})
 
-;      (println followedByMeButNotFollowingMe)
-
       (let [idsToUnfollow (take 1 followedByMeButNotFollowingMe)]
         (println (first idsToUnfollow))
 
 
+        ;; TODO call to twitter and actually unfolow a user!
+
+
         )
+
+
       (ctx/succeed! ctx { :followingMe                   followingMe
                           :followedByMe                  followedByMe
                           :followedByMeButNotFollowingMe followedByMeButNotFollowingMe}))))
