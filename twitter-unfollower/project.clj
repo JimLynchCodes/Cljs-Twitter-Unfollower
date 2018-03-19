@@ -1,6 +1,7 @@
 (defproject twitter-unfollower "0.1.0-SNAPSHOT"
-  :description "FIXME"
+  :description "Unfollower app"
   :url "http://please.FIXME"
+  :codox {:language :clojurescript}
   :dependencies [[org.clojure/clojure       "1.9.0"]
                  [org.clojure/clojurescript "1.10.126"]
                  [org.clojure/core.async    "0.4.474"]
@@ -10,7 +11,8 @@
             [lein-npm       "0.6.0"]
             [lein-doo       "0.1.7"]
             [io.nervous/lein-cljs-lambda "0.6.6"]
-            [lein-ancient "0.6.15"]]
+            [lein-ancient "0.6.15"]
+            [lein-codox "0.10.3"]]
   :npm {:dependencies [[source-map-support "0.4.0"]
                        [twit "2.2.9"]
                        ]}

@@ -1,4 +1,5 @@
 (ns twitter-unfollower.core
+  "ya some stuff!"
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [cljs-lambda.util :as lambda]
             [cljs-lambda.context :as ctx]
@@ -9,31 +10,25 @@
             [goog.object]
             [cljs.core.async :refer [put! chan <!]]))
 
-(defn filterFollowees [followingMe followedByMe]
+(defn filterFollowees
   "takes a vector of ids of users I'm following and map with structure {:id 0}
   containing users following me. Returns a vector of only users I'm folowing who
   were also found in the map."
+  [followingMe followedByMe]
   (let [cljFollowingMe  (js->clj followingMe)
         cljFollowedByMe (js->clj followedByMe)]
     (filter
       (fn [x] (if-not (some? ((keyword (str x)) cljFollowingMe)) x)) cljFollowedByMe)))
 
-(defn getData []
+(defn getData
   "Fills the various channels with data using the twitter api."
+  [Twitter]
   (def followingMeChan (chan))
   (def followedByMeChan(chan))
   (def followedByMeDetailsChan(chan))
 
-  (def config
-    (-> (nodejs/require "fs")
-        (.readFileSync "static/config.edn" "UTF-8")
-        read-string))
-
   (println "sending request...")
 
-  (let [twitter twit]
-    (def Twitter
-      (new twit (clj->js (:creds config)))))
 
   (def queryParams {})
 
@@ -48,30 +43,52 @@
     (fn [err data]
       (put! followedByMeChan (.-ids data)))))
 
-(deflambda run-lambda [args ctx]
+(deflambda run-lambda
   "Entry point for this AWS Lambda service!"
-  (getData)
+  [args ctx]
+
+  (println "args are " args)
+  (println "args stuff are " (:stuff args))
+  (println "args stuff are " (.-stuff args))
+  (println "ctx is " ctx)
+
+  (def config
+    (-> (nodejs/require "fs")
+        (.readFileSync "static/config.edn" "UTF-8")
+        read-string))
+
+  (let [Twitter (new twit (clj->js (:creds config)))]
+
+    (getData Twitter)
   (go
     (let [followingMe                   (<! followingMeChan)
           followedByMe                  (<! followedByMeChan)
           followedByMeButNotFollowingMe (filterFollowees followingMe followedByMe)]
 
       (def unfollowChan(chan))
-      (def unfollowParams
-        {:name        ""
-         :screen_name ""
-         :userId      ""})
 
       (let [idsToUnfollow (take 1 followedByMeButNotFollowingMe)]
         (println (first idsToUnfollow))
 
+        (println (str "Twitter is: " Twitter))
 
-        ;; TODO call to twitter and actually unfolow a user!
+        (println "posting...")
+        (.post Twitter "friendships/destroy" (clj->js {:user_id (first idsToUnfollow)})
+               (fn [err data]
+                 (put! unfollowChan [data err])
+                 )
+               )
+
+                 (let [unfollowed (<! unfollowChan)]
+                   (println "User has been unfollowed! " (first unfollowed))
+                   (println "User has been unfollowed! " (last unfollowed))
+
+                   )
+/
 
 
-        )
 
 
       (ctx/succeed! ctx { :followingMe                   followingMe
                           :followedByMe                  followedByMe
-                          :followedByMeButNotFollowingMe followedByMeButNotFollowingMe}))))
+                          :followedByMeButNotFollowingMe followedByMeButNotFollowingMe}))))))
