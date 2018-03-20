@@ -11,9 +11,11 @@
             [cljs.core.async :refer [put! chan <!]]))
 
 (defn filterFollowees
-  "takes a vector of ids of users I'm following and map with structure {:id 0}
-  containing users following me. Returns a vector of only users I'm folowing who
-  were also found in the map."
+  "Takes a vector of ids of users I'm following and map with structure
+  {:id String} containing users following me and returns a vector of
+  only users I'm following who were also found in the map."
+
+
   [followingMe followedByMe]
   (let [cljFollowingMe  (js->clj followingMe)
         cljFollowedByMe (js->clj followedByMe)]
