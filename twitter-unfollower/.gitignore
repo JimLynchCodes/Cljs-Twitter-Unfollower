@@ -6,3 +6,5 @@ pom.xml
 /target/
 .lein*
 /node_modules
+.idea
+twitter-unfollower/.idea

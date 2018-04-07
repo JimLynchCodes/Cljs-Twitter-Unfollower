@@ -12,7 +12,9 @@
             [lein-doo       "0.1.7"]
             [io.nervous/lein-cljs-lambda "0.6.6"]
             [lein-ancient "0.6.15"]
-            [lein-codox "0.10.3"]]
+            [lein-codox "0.10.3"]
+            [jonase/eastwood "0.2.5"]
+            [lein-kibit "0.1.5"]]
   :npm {:dependencies [[source-map-support "0.4.0"]
                        [twit "2.2.9"]
                        ]}

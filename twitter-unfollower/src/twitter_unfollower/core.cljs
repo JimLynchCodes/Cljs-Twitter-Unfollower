@@ -1,5 +1,5 @@
 (ns twitter-unfollower.core
-  "ya some stuff!"
+  "An AWS lambda function that unfollows users not following you back."
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [cljs-lambda.util :as lambda]
             [cljs-lambda.context :as ctx]
@@ -14,8 +14,6 @@
   "Takes a vector of ids of users I'm following and map with structure
   {:id String} containing users following me and returns a vector of
   only users I'm following who were also found in the map."
-
-
   [followingMe followedByMe]
   (let [cljFollowingMe  (js->clj followingMe)
         cljFollowedByMe (js->clj followedByMe)]
@@ -28,69 +26,58 @@
   (def followingMeChan (chan))
   (def followedByMeChan(chan))
   (def followedByMeDetailsChan(chan))
-
-  (println "sending request...")
-
-
   (def queryParams {})
 
   (.get Twitter "followers/ids" queryParams
-    (fn [err data]
-      (def mapOfIds (apply array-map
-        (interleave (map keyword (map str (.-ids data)))
-          (map (fn [x] 0) (.-ids data)))))
-            (put! followingMeChan mapOfIds)))
+        (fn [err data]
+          (println "followers/id returned" err " " data)
+          (def mapOfIds
+            (apply array-map
+                   (interleave (map keyword (map str (.-ids data)))
+                               (map (fn [x] 0) (.-ids data)))))
+          (put! followingMeChan mapOfIds)))
 
   (.get Twitter "friends/ids" queryParams
-    (fn [err data]
-      (put! followedByMeChan (.-ids data)))))
+        (fn [err data]
+          (println "friends/id returned" err " " data)
+          (put! followedByMeChan (.-ids data)))))
 
 (deflambda run-lambda
   "Entry point for this AWS Lambda service!"
   [args ctx]
 
-  (println "args are " args)
-  (println "args stuff are " (:stuff args))
-  (println "args stuff are " (.-stuff args))
-  (println "ctx is " ctx)
 
-  (def config
-    (-> (nodejs/require "fs")
-        (.readFileSync "static/config.edn" "UTF-8")
-        read-string))
-
-  (let [Twitter (new twit (clj->js (:creds config)))]
+  (let [Twitter (new twit (clj->js (:creds args)))]
 
     (getData Twitter)
-  (go
-    (let [followingMe                   (<! followingMeChan)
-          followedByMe                  (<! followedByMeChan)
-          followedByMeButNotFollowingMe (filterFollowees followingMe followedByMe)]
+    (go
+      (let [followingMe                   (<! followingMeChan)
+            followedByMe                  (<! followedByMeChan)
+            followedByMeButNotFollowingMe (filterFollowees followingMe followedByMe)]
 
-      (def unfollowChan(chan))
+        (println "following me" followingMe)
+        (println "followed by me" followedByMe)
+        (println "followedByMeButNotFollowingMe " followedByMeButNotFollowingMe)
 
-      (let [idsToUnfollow (take 1 followedByMeButNotFollowingMe)]
-        (println (first idsToUnfollow))
+        (def unfollowChan(chan))
 
-        (println (str "Twitter is: " Twitter))
+        (let [idsToUnfollow [(take 3 followedByMeButNotFollowingMe)]]
+          (println "id to unfollower " (idsToUnfollow))
 
-        (println "posting...")
-        (.post Twitter "friendships/destroy" (clj->js {:user_id (first idsToUnfollow)})
-               (fn [err data]
-                 (put! unfollowChan [data err])
-                 )
-               )
+          (println (str "Twitter is: " Twitter))
 
-                 (let [unfollowed (<! unfollowChan)]
-                   (println "User has been unfollowed! " (first unfollowed))
-                   (println "User has been unfollowed! " (last unfollowed))
+          (println "unfollowing: " {:user_id (last idsToUnfollow)})
 
-                   )
-/
+          (.post Twitter "friendships/destroy" (clj->js {:user_id (last idsToUnfollow)})
+                 (fn [err data]
+                   (put! unfollowChan [data err])))
 
-
+          (let [unfollowed (<! unfollowChan)]
+            (println "User has been unfollowed! " (first unfollowed))
+            (println "User has been unfollowed! " (last unfollowed)))
 
 
-      (ctx/succeed! ctx { :followingMe                   followingMe
-                          :followedByMe                  followedByMe
-                          :followedByMeButNotFollowingMe followedByMeButNotFollowingMe}))))))
+          (ctx/succeed! ctx
+                        {:followingMe                   followingMe
+                         :followedByMe                  followedByMe
+                         :followedByMeButNotFollowingMe followedByMeButNotFollowingMe}))))))
