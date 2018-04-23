@@ -1,51 +1,80 @@
 (ns twitter-unfollower.core-test
-  (:require [twitter-unfollower.core :refer [work-magic config]]
+  (:require [twitter-unfollower.core :refer [run-lambda filterFollowees]]
             [cljs.test :refer-macros [deftest is]]
             [cljs-lambda.local :refer [invoke channel]]
-            [promesa.core :as p :refer [await] :refer-macros [alet]]
+            [promesa.core :as p
+             :refer           [await]
+             :refer-macros    [alet]]
             [cljs.core.async :refer [<!]])
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (defn with-promised-completion [p]
   (cljs.test/async
-   done
-   (-> p
-       (p/catch #(is (not %)))
-       (p/then done))))
+    done
+    (-> p
+        (p/catch #(is (not %)))
+        (p/then #(println "oh yrah" %)))))
 
 (defn with-some-error [p]
   (p/branch p
-    #(is false "Expected error")
-    (constantly nil)))
+            #(is false "Expected error")
+            (constantly nil)))
 
-(deftest echo
-  (-> (invoke work-magic {:magic-word "not the magic word"})
-      with-some-error
-      with-promised-completion))
+;(deftest echo
+;  (-> (invoke work-magic {:magic-word "not the magic word"})
+;      with-some-error
+;      with-promised-completion))
 
-(def delay-channel-req
-  {:magic-word (:magic-word config)
-   :spell :delay-channel
-   :msecs 2})
+;(def delay-channel-req
+;  {:magic-word (:magic-word config)
+;   :spell :delay-channel
+;   :msecs 2})
 
-(deftest delay-channel-spell
-  (with-promised-completion
-    (alet [{:keys [waited]} (await (invoke work-magic delay-channel-req))]
-      (is (= waited 2)))))
-
-(deftest delay-channel-spell-go
-  (cljs.test/async
-   done
-   (go
-     (let [[tag response] (<! (channel work-magic delay-channel-req))]
-       (is (= tag :succeed))
-       (is (= response {:waited 2})))
-     (done))))
+;(deftest delay-channel-spell
+;  (with-promised-completion
+;    (alet [{:keys [waited]} (await (invoke work-magic delay-channel-req))]
+;      (is (= waited 2)))))
+;
+;(deftest delay-channel-spell-go
+;  (cljs.test/async
+;   done
+;   (go
+;     (let [[tag response] (<! (channel work-magic delay-channel-req))]
+;       (is (= tag :succeed))
+;       (is (= response {:waited 2})))
+;     (done))))
 
 (deftest delay-fail-spell
-  (-> (invoke work-magic
-              {:magic-word (:magic-word config)
-               :spell :delay-fail
-               :msecs 3})
-      with-some-error
-      with-promised-completion))
+  (->
+    (invoke work-magic
+            {:magic-word (:magic-word config)
+             :spell      :delay-fail
+             :msecs      3})
+    with-some-error
+    with-promised-completion))
+
+
+;(deftesoke run-lambda {:yeah "buddy"})
+;with-some-error
+;with-promised-completion))t ok
+;  (-> (inv
+
+(deftest run
+  (->
+    (invoke run-lambda
+            {:creds {:consumer_key        "CsRZ0L9oBGWhIs2pNp7CFdzU7"
+                     :consumer_secret     "fC5rr11BWtJGCTxU7prS9WMz4AK6HXgyl2DtVwGdT1zxzvUcdE"
+                     :access_token        "3930103636-zJiKnCIljqIGPZJrGKWhUS55BgolTHWYQ31ytr5"
+                     :access_token_secret "2envh7Jz6mmbDD7yhmSGZhsKCZ7TsuLWSOajeWWkFQned"}})
+            with-some-error
+            with-promised-completion))
+
+
+(deftest yerr
+  (let [potentialUnfollowees (filterFollowees [1, 2, 3, 4] [2, 3, 4, 5, 6])]
+    (println potentialUnfollowees)
+    (is (= potentialUnfollowees '(2 3 4 5 6)))))
+
+
+;(deftest yep
+;(is (= 1 (.then (invoke run-lambda {:yeah "buddy"}) #(println %)))))

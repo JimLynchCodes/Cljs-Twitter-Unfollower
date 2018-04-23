@@ -27,6 +27,7 @@
   (def followedByMeChan(chan))
   (def followedByMeDetailsChan(chan))
   (def queryParams {})
+  (def unfollowChan(chan))
 
   (.get Twitter "followers/ids" queryParams
         (fn [err data]
@@ -46,9 +47,7 @@
   "Entry point for this AWS Lambda service!"
   [args ctx]
 
-
   (let [Twitter (new twit (clj->js (:creds args)))]
-
     (getData Twitter)
     (go
       (let [followingMe                   (<! followingMeChan)
@@ -59,16 +58,14 @@
         (println "followed by me" followedByMe)
         (println "followedByMeButNotFollowingMe " followedByMeButNotFollowingMe)
 
-        (def unfollowChan(chan))
-
-        (let [idsToUnfollow [(take 3 followedByMeButNotFollowingMe)]]
-          (println "id to unfollower " (idsToUnfollow))
-
+        (let [idToUnfollow (rand-nth followedByMeButNotFollowingMe)]
+          (println "id to unfollower " idToUnfollow)
           (println (str "Twitter is: " Twitter))
+          (println "unfollowing: " {:user_id idToUnfollow})
 
-          (println "unfollowing: " {:user_id (last idsToUnfollow)})
 
-          (.post Twitter "friendships/destroy" (clj->js {:user_id (last idsToUnfollow)})
+
+          (.post Twitter "friendships/destroy" (clj->js {:user_id idToUnfollow})
                  (fn [err data]
                    (put! unfollowChan [data err])))
 
@@ -80,4 +77,9 @@
           (ctx/succeed! ctx
                         {:followingMe                   followingMe
                          :followedByMe                  followedByMe
-                         :followedByMeButNotFollowingMe followedByMeButNotFollowingMe}))))))
+                         :followedByMeButNotFollowingMe followedByMeButNotFollowingMe}))
+
+
+        ()
+
+        ))))
