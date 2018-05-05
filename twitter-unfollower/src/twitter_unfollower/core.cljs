@@ -20,6 +20,33 @@
     (filter
       (fn [x] (if-not (some? ((keyword (str x)) cljFollowingMe)) x)) cljFollowedByMe)))
 
+(defn unfollowUser
+  "Takes an array of users and randoms tries to unfollow one. Returns lambda response if successful,
+   otherwise recursively calls itself again."
+  [followedByMeButNotFollowingMe Twitter followingMe followedByMe ctx]
+  (let [idToUnfollow (rand-nth followedByMeButNotFollowingMe)]
+    (println "id to unfollower " idToUnfollow)
+    (println (str "Twitter is: " Twitter))
+    (println "unfollowing: " {:user_id idToUnfollow})
+
+      (.post Twitter "friendships/destroy" (clj->js {:user_id idToUnfollow})
+             (fn [err data]
+               (put! unfollowChan [data err])))
+    (go
+
+      (let [unfollowed (<! unfollowChan)]
+
+        (println "User has been unfollowed! " idToUnfollow)
+
+        (println "Let's return stuff! ")
+;        (ctx/done! ctx)
+        (ctx/succeed! ctx "Derp")
+        ))))
+        ;      TODO - put in real error checking
+;        (if (= unfollowed "error")
+;            (unfollowUser followedByMeButNotFollowingMe Twitter followingMe followedByMe ctx)
+;            (ctx/succeed! ctx idToUnfollow))))))
+
 (defn getData
   "Fills the various channels with data using the twitter api."
   [Twitter]
@@ -53,33 +80,8 @@
       (let [followingMe                   (<! followingMeChan)
             followedByMe                  (<! followedByMeChan)
             followedByMeButNotFollowingMe (filterFollowees followingMe followedByMe)]
-
         (println "following me" followingMe)
         (println "followed by me" followedByMe)
         (println "followedByMeButNotFollowingMe " followedByMeButNotFollowingMe)
 
-        (let [idToUnfollow (rand-nth followedByMeButNotFollowingMe)]
-          (println "id to unfollower " idToUnfollow)
-          (println (str "Twitter is: " Twitter))
-          (println "unfollowing: " {:user_id idToUnfollow})
-
-
-
-          (.post Twitter "friendships/destroy" (clj->js {:user_id idToUnfollow})
-                 (fn [err data]
-                   (put! unfollowChan [data err])))
-
-          (let [unfollowed (<! unfollowChan)]
-            (println "User has been unfollowed! " (first unfollowed))
-            (println "User has been unfollowed! " (last unfollowed)))
-
-
-          (ctx/succeed! ctx
-                        {:followingMe                   followingMe
-                         :followedByMe                  followedByMe
-                         :followedByMeButNotFollowingMe followedByMeButNotFollowingMe}))
-
-
-        ()
-
-        ))))
+        (unfollowUser followedByMeButNotFollowingMe Twitter followingMe followedByMe ctx)))))
