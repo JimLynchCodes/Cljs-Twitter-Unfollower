@@ -25,27 +25,22 @@
    otherwise recursively calls itself again."
   [followedByMeButNotFollowingMe Twitter followingMe followedByMe ctx]
   (let [idToUnfollow (rand-nth followedByMeButNotFollowingMe)]
-    (println "id to unfollower " idToUnfollow)
-    (println (str "Twitter is: " Twitter))
-    (println "unfollowing: " {:user_id idToUnfollow})
+    (go
+      (println "id to unfollower " idToUnfollow)
+      (println (str "Twitter is: " Twitter))
+      (println "unfollowing: " {:user_id idToUnfollow})
 
       (.post Twitter "friendships/destroy" (clj->js {:user_id idToUnfollow})
              (fn [err data]
+               ;            TODO - put in real error checking
                (put! unfollowChan [data err])))
-    (go
+
+      (println "unfollowed user")
 
       (let [unfollowed (<! unfollowChan)]
-
         (println "User has been unfollowed! " idToUnfollow)
-
         (println "Let's return stuff! ")
-;        (ctx/done! ctx)
-        (ctx/succeed! ctx "Derp")
-        ))))
-        ;      TODO - put in real error checking
-;        (if (= unfollowed "error")
-;            (unfollowUser followedByMeButNotFollowingMe Twitter followingMe followedByMe ctx)
-;            (ctx/succeed! ctx idToUnfollow))))))
+        (ctx/succeed! ctx idToUnfollow)))))
 
 (defn getData
   "Fills the various channels with data using the twitter api."
