@@ -79,4 +79,4 @@
         (println "followed by me" followedByMe)
         (println "followedByMeButNotFollowingMe " followedByMeButNotFollowingMe)
 
-        (unfollowUser followedByMeButNotFollowingMe Twitter followingMe followedByMe ctx)))))
+        (<! (unfollowUser followedByMeButNotFollowingMe Twitter followingMe followedByMe ctx))))))
