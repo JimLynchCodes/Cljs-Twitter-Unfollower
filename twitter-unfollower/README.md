@@ -1,19 +1,18 @@
 # Cljs Twitter Unfollower
 
 
-## What It Do
+## What It Does
 
 Currently, this function uses the [twit](https://github.com/ttezel/twit) javascript library (in a clojurescript project!) to pull an array of all the user accounts following a specific user and all the accounts being followed by that user.
 
-## Future Plans
-Eventually this project will use both arrays to get an array of only the users that you are following who are not following you back. It will then unfollow these users (or a smaller set selected from these users). 
-
+## Non Serverless
+This project uses cljs-lambda rather than the serverless framework with the standard serverless.yaml file and `sls` commands.
 
 ## Usage 
 
 ### 1) Set Up Twitter Credentials
 
-First, create a folder in the twitter-unfollower directory alongside the _src_ and _test_ folders. Inside of it create a file name _config.edn_ in which you can place this credentials map:
+First, create a folder in the twitter-unfollower directory alongside the _src_ and _test_ folders anmed `static`. Inside of it create a file name _config.edn_ in which you can place this credentials map:
 
 
 ```

@@ -62,6 +62,7 @@
 (deftest run
   (->
     (invoke run-lambda
+    ; using fake creds
             {:creds {:consumer_key        "CsRZ0L9oBGWhIs2pNp7CFdzU7"
                      :consumer_secret     "fC5rr11BWtJGCTxU7prS9WMz4AK6HXgyl2DtVwGdT1zxzvUcdE"
                      :access_token        "3930103636-zJiKnCIljqIGPZJrGKWhUS55BgolTHWYQ31ytr5"
